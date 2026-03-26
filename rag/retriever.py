@@ -1,4 +1,4 @@
-"""FAISS retrieval helpers with pure-python fallback."""
+"""FAISS retrieval helpers with pure-python fallback and reranking."""
 
 from __future__ import annotations
 
@@ -33,6 +33,12 @@ def _dot(a: list[float], b: list[float]) -> float:
     return sum(x * y for x, y in zip(a, b))
 
 
+def _cos(a: list[float], b: list[float]) -> float:
+    na = math.sqrt(sum(x * x for x in a)) or 1.0
+    nb = math.sqrt(sum(x * x for x in b)) or 1.0
+    return _dot(a, b) / (na * nb)
+
+
 class FaissStore:
     """Owns one FAISS index plus aligned metadata."""
 
@@ -44,7 +50,6 @@ class FaissStore:
         self.vectors: list[list[float]] = []
 
     def build(self, embeddings, metadata: list[dict]) -> None:
-        """Build the index from vectors + metadata."""
         if np is not None and isinstance(embeddings, np.ndarray):
             vectors = embeddings.astype("float32").tolist()
             dim = embeddings.shape[1]
@@ -60,7 +65,6 @@ class FaissStore:
         self.metadata = metadata
 
     def save(self) -> None:
-        """Persist index and metadata."""
         if self.index is not None and faiss is not None:
             faiss.write_index(self.index, str(_index_path(self.db_dir)))
         with _vectors_path(self.db_dir).open("w", encoding="utf-8") as f:
@@ -70,7 +74,6 @@ class FaissStore:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
     def load(self) -> None:
-        """Load index and metadata from disk."""
         if faiss is not None and _index_path(self.db_dir).exists():
             self.index = faiss.read_index(str(_index_path(self.db_dir)))
         with _vectors_path(self.db_dir).open("r", encoding="utf-8") as f:
@@ -78,33 +81,32 @@ class FaissStore:
         with _metadata_path(self.db_dir).open("r", encoding="utf-8") as f:
             self.metadata = [json.loads(line) for line in f]
 
-    def search(self, query_vector: list[float], k: int = 5) -> list[dict]:
-        """Return top-k records with similarity scores."""
+    def search(self, query_vector: list[float], k: int = 3, candidate_k: int = 10, score_threshold: float = 0.3) -> list[dict]:
+        """Search with threshold filtering and cosine reranking."""
         if not self.metadata:
             self.load()
 
+        candidates: list[tuple[float, int]] = []
         if self.index is not None and faiss is not None and np is not None:
             q = np.array([query_vector], dtype=np.float32)
-            scores, ids = self.index.search(q, k)
-            rows = []
-            for score, idx in zip(scores[0], ids[0]):
-                if idx < 0:
-                    continue
-                row = dict(self.metadata[idx])
-                row["score"] = float(score)
-                rows.append(row)
-            return rows
+            scores, ids = self.index.search(q, candidate_k)
+            candidates = [(float(s), int(i)) for s, i in zip(scores[0], ids[0]) if i >= 0]
+        else:
+            for i, v in enumerate(self.vectors):
+                candidates.append((_cos(query_vector, v), i))
+            candidates.sort(reverse=True)
+            candidates = candidates[:candidate_k]
 
-        qn = math.sqrt(sum(x * x for x in query_vector)) or 1.0
-        scored = []
-        for i, v in enumerate(self.vectors):
-            vn = math.sqrt(sum(x * x for x in v)) or 1.0
-            score = _dot(query_vector, v) / (qn * vn)
-            scored.append((score, i))
-        scored.sort(reverse=True)
+        reranked = []
+        for _, idx in candidates:
+            sim = _cos(query_vector, self.vectors[idx])
+            if sim >= score_threshold:
+                reranked.append((sim, idx))
+
+        reranked.sort(reverse=True)
         results = []
-        for score, idx in scored[:k]:
+        for sim, idx in reranked[:k]:
             row = dict(self.metadata[idx])
-            row["score"] = float(score)
+            row["score"] = float(sim)
             results.append(row)
         return results

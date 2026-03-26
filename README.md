@@ -43,3 +43,9 @@ python -m scripts.build_graph
 pytest -q
 streamlit run ui/streamlit_app.py
 ```
+
+
+Retrieval behavior:
+- top-10 candidate retrieval with cosine reranking
+- top-3 returned after score threshold filtering (default 0.3)
+- if top score below threshold, system returns: "No reliable answer found in indexed data"

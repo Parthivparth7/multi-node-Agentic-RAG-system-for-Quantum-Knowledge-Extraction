@@ -11,15 +11,16 @@ def test_embedder_outputs_vectors():
     assert len(vectors[0]) > 0
 
 
-def test_faiss_store_roundtrip(tmp_path: Path):
+def test_faiss_store_roundtrip_with_rerank_and_threshold(tmp_path: Path):
     store = FaissStore(tmp_path / "faiss")
-    vectors = [[1.0, 0.0], [0.9, 0.1], [0.0, 1.0]]
-    metadata = [{"chunk": "a"}, {"chunk": "b"}, {"chunk": "c"}]
+    vectors = [[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]]
+    metadata = [{"chunk": "a"}, {"chunk": "b"}, {"chunk": "c"}, {"chunk": "d"}]
     store.build(vectors, metadata)
     store.save()
 
     loaded = FaissStore(tmp_path / "faiss")
     loaded.load()
-    results = loaded.search([1.0, 0.0], k=2)
+    results = loaded.search([1.0, 0.0], k=3, candidate_k=10, score_threshold=0.3)
     assert results
+    assert len(results) <= 3
     assert results[0]["chunk"] in {"a", "b"}
