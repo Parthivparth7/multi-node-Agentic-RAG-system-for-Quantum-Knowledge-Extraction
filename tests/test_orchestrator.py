@@ -24,3 +24,10 @@ def test_stream_text():
     orch = DummyOrchestrator()
     chunks = list(orch.stream_text("abcdef", chunk_size=2))
     assert chunks == ["ab", "cd", "ef"]
+
+
+def test_stream_interface():
+    orch = DummyOrchestrator()
+    stream_iter, result = orch.stream("Explain Grover", history=[{"role": "user", "content": "hi"}])
+    assert result.source_pdf == "qc.pdf"
+    assert "".join(list(stream_iter))

@@ -105,6 +105,18 @@ class AgentOrchestrator:
             source_pdf=best.get("source", "unknown"),
         )
 
+    def stream(
+        self,
+        query: str,
+        node_override: str | None = None,
+        vector_override: str | None = None,
+        history: list[dict] | None = None,
+        chunk_size: int = 18,
+    ) -> tuple[Iterator[str], OrchestratorResponse]:
+        """Return a streaming iterator and the underlying structured response."""
+        result = self.run(query, node_override=node_override, vector_override=vector_override, history=history)
+        return self.stream_text(result.answer, chunk_size=chunk_size), result
+
     @staticmethod
     def stream_text(text: str, chunk_size: int = 18) -> Iterator[str]:
         """Yield response text in small chunks for streaming UIs."""
