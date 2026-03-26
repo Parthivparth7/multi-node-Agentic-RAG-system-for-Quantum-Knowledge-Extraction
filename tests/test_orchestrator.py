@@ -11,8 +11,16 @@ class DummyOrchestrator(AgentOrchestrator):
 
 def test_orchestrator_response_shape():
     orch = DummyOrchestrator()
-    result = orch.run("Explain Grover algorithm")
+    history = [{"role": "user", "content": "previous question about qubits"}]
+    result = orch.run("Explain Grover algorithm", history=history)
     text = result.render()
     assert "1. Final Answer" in text
     assert result.node_used == "algorithm"
     assert result.source_pdf == "qc.pdf"
+    assert "Conversation hint" in result.answer
+
+
+def test_stream_text():
+    orch = DummyOrchestrator()
+    chunks = list(orch.stream_text("abcdef", chunk_size=2))
+    assert chunks == ["ab", "cd", "ef"]

@@ -5,6 +5,9 @@ Offline-first production pipeline for quantum PDF knowledge extraction with:
 - specialized node pipelines
 - Neo4j GraphRAG
 - DeepSeek-style Streamlit UI (`Black Kite`)
+- streaming answer rendering
+- cached orchestrator instance
+- loading spinner and UI error handling
 
 ## Architecture
 

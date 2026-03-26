@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterator
 
 from agent.planner import route_query
 from config.settings import NODE_TO_DB_DIR, settings
@@ -57,11 +58,26 @@ class AgentOrchestrator:
         except Exception:
             return []
 
-    def run(self, query: str, node_override: str | None = None, vector_override: str | None = None) -> OrchestratorResponse:
+    @staticmethod
+    def _history_hint(history: list[dict] | None, limit: int = 3) -> str:
+        """Create concise hint text from recent chat history."""
+        if not history:
+            return ""
+        turns = [f"{m.get('role', 'user')}: {m.get('content', '')}" for m in history[-limit:]]
+        return " | ".join(turns)
+
+    def run(
+        self,
+        query: str,
+        node_override: str | None = None,
+        vector_override: str | None = None,
+        history: list[dict] | None = None,
+    ) -> OrchestratorResponse:
         """Run end-to-end retrieval and return structured response."""
         routed = node_override if node_override and node_override != "auto" else route_query(query)
         db_node = vector_override if vector_override and vector_override != "auto" else routed
         top = self._fetch_vector_context(db_node, query, k=4)
+        history_hint = self._history_hint(history)
 
         if not top:
             return OrchestratorResponse(
@@ -76,9 +92,10 @@ class AgentOrchestrator:
         context = "\n---\n".join(item.get("chunk", "")[:400] for item in top)
         related = self._fetch_graph_concepts(best.get("chunk", ""))
 
+        history_msg = f" Conversation hint: {history_hint}." if history_hint else ""
         answer = (
-            "Based on retrieved quantum corpus context, this response is grounded in the top matching chunks. "
-            "For deeper validation, inspect the cited source chunk and related concepts."
+            "Based on retrieved quantum corpus context, this response is grounded in the top matching chunks."
+            f"{history_msg} For deeper validation, inspect the cited source chunk and related concepts."
         )
         return OrchestratorResponse(
             answer=answer,
@@ -87,3 +104,9 @@ class AgentOrchestrator:
             related_concepts=related,
             source_pdf=best.get("source", "unknown"),
         )
+
+    @staticmethod
+    def stream_text(text: str, chunk_size: int = 18) -> Iterator[str]:
+        """Yield response text in small chunks for streaming UIs."""
+        for i in range(0, len(text), chunk_size):
+            yield text[i : i + chunk_size]
