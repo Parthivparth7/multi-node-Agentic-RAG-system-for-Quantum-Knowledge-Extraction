@@ -1,4 +1,4 @@
-"""Central configuration for the Quantum Knowledge Retrieval Agent (QKRA)."""
+"""Central configuration for the Multi-Domain Knowledge Retrieval Agent."""
 
 from __future__ import annotations
 
@@ -14,15 +14,20 @@ class Settings:
     project_root: Path = Path(__file__).resolve().parents[1]
     data_dir: Path = project_root / "data"
     raw_pdfs_dir: Path = data_dir / "raw_pdfs"
+    quantum_pdfs_dir: Path = raw_pdfs_dir / "Quantum-Computing-Books"
+    bio_pdfs_dir: Path = raw_pdfs_dir / "Bioinformatics-Books"
     processed_chunks_dir: Path = data_dir / "processed_chunks"
     chunks_file: Path = processed_chunks_dir / "chunks.jsonl"
 
     vector_db_dir: Path = project_root / "vector_db"
-    faiss_common_terms_dir: Path = vector_db_dir / "faiss_common_terms"
-    faiss_equations_dir: Path = vector_db_dir / "faiss_equations"
-    faiss_hardware_dir: Path = vector_db_dir / "faiss_hardware"
-    faiss_algorithms_dir: Path = vector_db_dir / "faiss_algorithms"
-    faiss_general_dir: Path = vector_db_dir / "faiss_general"
+    faiss_quantum_general_dir: Path = vector_db_dir / "faiss_quantum_general"
+    faiss_quantum_equations_dir: Path = vector_db_dir / "faiss_quantum_equations"
+    faiss_quantum_hardware_dir: Path = vector_db_dir / "faiss_quantum_hardware"
+    faiss_quantum_algorithms_dir: Path = vector_db_dir / "faiss_quantum_algorithms"
+
+    faiss_bio_general_dir: Path = vector_db_dir / "faiss_bio_general"
+    faiss_bio_terms_dir: Path = vector_db_dir / "faiss_bio_terms"
+    faiss_bio_algorithms_dir: Path = vector_db_dir / "faiss_bio_algorithms"
 
     chunk_size: int = 500
     chunk_overlap: int = 100
@@ -37,9 +42,11 @@ class Settings:
 settings = Settings()
 
 NODE_TO_DB_DIR = {
-    "common_terms": settings.faiss_common_terms_dir,
-    "equation": settings.faiss_equations_dir,
-    "hardware": settings.faiss_hardware_dir,
-    "algorithm": settings.faiss_algorithms_dir,
-    "general": settings.faiss_general_dir,
+    "quantum_general": settings.faiss_quantum_general_dir,
+    "quantum_equation": settings.faiss_quantum_equations_dir,
+    "quantum_hardware": settings.faiss_quantum_hardware_dir,
+    "quantum_algorithm": settings.faiss_quantum_algorithms_dir,
+    "bio_general": settings.faiss_bio_general_dir,
+    "bio_terms": settings.faiss_bio_terms_dir,
+    "bio_algorithm": settings.faiss_bio_algorithms_dir,
 }

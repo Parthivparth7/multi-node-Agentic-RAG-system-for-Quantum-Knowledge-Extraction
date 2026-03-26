@@ -4,10 +4,11 @@ import pytest
 
 fitz = pytest.importorskip("fitz")
 
+import scripts.ingest as ingest
 from scripts.ingest import load_pdf, process_all, save_chunks
 
 
-def test_pdf_ingestion_pipeline(tmp_path: Path):
+def test_pdf_ingestion_pipeline(tmp_path: Path, monkeypatch):
     pdf_path = tmp_path / "sample.pdf"
     doc = fitz.open()
     page = doc.new_page()
@@ -18,8 +19,10 @@ def test_pdf_ingestion_pipeline(tmp_path: Path):
     records = load_pdf(pdf_path)
     assert records and records[0]["source"] == "sample.pdf"
 
-    out = process_all(tmp_path)
+    monkeypatch.setattr(ingest, "discover_domain_pdfs", lambda: [("quantum", pdf_path)])
+    out = process_all()
     assert out and "chunk" in out[0]
+    assert out[0]["domain"] == "quantum"
 
     out_file = tmp_path / "chunks.jsonl"
     save_chunks(out, out_file)

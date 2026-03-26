@@ -1,4 +1,4 @@
-"""PDF ingestion pipeline."""
+"""PDF ingestion pipeline with domain tagging."""
 
 from __future__ import annotations
 
@@ -28,18 +28,28 @@ def load_pdf(path: Path) -> list[dict]:
     return records
 
 
-def process_all(pdf_dir: Path = settings.raw_pdfs_dir) -> list[dict]:
-    """Read PDFs and convert them into chunk records with metadata."""
-    pdf_paths = sorted(pdf_dir.glob("*.pdf"))
-    logger.info("Discovered %s PDF files in %s", len(pdf_paths), pdf_dir)
+def discover_domain_pdfs() -> list[tuple[str, Path]]:
+    """Discover PDFs for both supported domains."""
+    discovered: list[tuple[str, Path]] = []
+    for domain, root in (("quantum", settings.quantum_pdfs_dir), ("bioinformatics", settings.bio_pdfs_dir)):
+        for p in sorted(root.rglob("*.pdf")):
+            discovered.append((domain, p))
+    return discovered
+
+
+def process_all() -> list[dict]:
+    """Read domain PDFs and convert them into chunk records with metadata."""
+    discovered = discover_domain_pdfs()
+    logger.info("Discovered %s PDF files", len(discovered))
     chunk_records: list[dict] = []
-    for pdf_path in pdf_paths:
+    for domain, pdf_path in discovered:
         for rec in load_pdf(pdf_path):
             chunks = chunk_text(rec["text"])
             for idx, chunk in enumerate(chunks):
                 chunk_records.append(
                     {
-                        "id": f"{rec['source']}::p{rec['page']}::c{idx}",
+                        "id": f"{domain}::{rec['source']}::p{rec['page']}::c{idx}",
+                        "domain": domain,
                         "source": rec["source"],
                         "page": rec["page"],
                         "chunk": chunk,

@@ -1,4 +1,4 @@
-"""Build Neo4j concept graph from chunk records."""
+"""Build Neo4j concept graph from domain-tagged chunk records."""
 
 from __future__ import annotations
 
@@ -18,7 +18,6 @@ def load_chunks(path: Path = settings.chunks_file) -> list[dict]:
 
 
 def run(chunks_file: Path = settings.chunks_file) -> int:
-    """Build graph edges from chunk corpus."""
     records = load_chunks(chunks_file)
     cfg = GraphConfig(settings.neo4j_uri, settings.neo4j_user, settings.neo4j_password)
     graph = GraphNode(cfg)
@@ -38,5 +37,4 @@ def run(chunks_file: Path = settings.chunks_file) -> int:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    count = run()
-    print(f"Inserted relations: {count}")
+    print(f"Inserted relations: {run()}")
