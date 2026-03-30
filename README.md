@@ -49,3 +49,17 @@ Retrieval behavior:
 - top-10 candidate retrieval with cosine reranking
 - top-3 returned after score threshold filtering (default 0.3)
 - if top score below threshold, system returns: "No reliable answer found in indexed data"
+
+## New script for clustered multi-agent retrieval
+
+Use `scripts/multi_agent_rag.py` for:
+- loading multiple FAISS/vector stores
+- global vector pooling
+- MiniBatchKMeans clustering
+- cluster-distribution domain prediction
+- cluster-first semantic search + context expansion + reranking
+
+Run:
+```bash
+python -m scripts.multi_agent_rag
+```
