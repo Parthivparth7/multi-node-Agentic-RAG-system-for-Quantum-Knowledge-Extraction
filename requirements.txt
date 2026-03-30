@@ -1,0 +1,9 @@
+faiss-cpu
+langchain-text-splitters
+neo4j
+numpy
+pymupdf
+pytest
+scikit-learn
+sentence-transformers
+streamlit
